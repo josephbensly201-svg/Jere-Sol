@@ -51,19 +51,21 @@ export async function getGroupData(id) {
   return { group, members, payments, calc: compute(group, members, payments) };
 }
 
-export async function createGroup({ name, amount }) {
+export async function createGroup({ name, amount, frequency, startDate }) {
   const db = await getDB();
-  const group = { id: uid(), name: name.trim(), amount, createdAt: Date.now() };
+  const group = { id: uid(), name: name.trim(), amount, frequency, startDate, createdAt: Date.now() };
   await db.put('groups', group);
   return group;
 }
 
-export async function updateGroup(id, { name, amount }) {
+export async function updateGroup(id, { name, amount, frequency, startDate }) {
   const db = await getDB();
   const group = await db.get('groups', id);
   if (!group) return null;
   group.name = name.trim();
   group.amount = amount;
+  group.frequency = frequency;
+  group.startDate = startDate;
   await db.put('groups', group);
   return group;
 }

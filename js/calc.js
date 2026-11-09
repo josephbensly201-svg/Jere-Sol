@@ -11,8 +11,8 @@ export function status(amount, due) {
 
 /**
  * Règ yo:
- *  - Nonb tour = nonb manm (tout manm konte, menm inaktif, pou lòd la pa chanje).
- *  - Chak manm aktif dwe `amount` × nonb tour.
+ *  - Nonb manch = nonb manm (tout manm konte, menm inaktif, pou lòd la pa chanje).
+ *  - Chak manm aktif dwe `amount` × nonb manch.
  *  - Manm inaktif: peman li yo rete konte nan "kolekte", men li pa dwe anyen ankò.
  */
 export function compute(group, members, payments) {

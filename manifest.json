@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Jere Sòl",
-  "short_name": "Jere Sòl",
-  "description": "Kaye nimerik pou swiv sòl ou: manm, tour, peman ak total. Mache san entènèt.",
+  "name": "SòlPèp",
+  "short_name": "SòlPèp",
+  "description": "Kaye nimerik pou swiv sòl ou: manm, manch, peman ak total. Mache san entènèt.",
   "lang": "ht",
   "dir": "ltr",
   "start_url": "./index.html",

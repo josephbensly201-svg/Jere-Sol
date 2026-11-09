@@ -1,9 +1,9 @@
-/* Jere Sòl — service worker
+/* SòlPèp — service worker
  * Strategi: tout fichye aplikasyon an mete nan cache nan premye vizit la (precache).
  * Apre sa, aplikasyon an ouvri san entènèt. Fichye yo rafrechi an background
  * (stale-while-revalidate). Pou fòse yon mizajou, chanje VERSION anba a.
  */
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.3.0';
 const CACHE = `jere-sol-${VERSION}`;
 
 const ASSETS = [
@@ -16,6 +16,7 @@ const ASSETS = [
   './js/db.js',
   './js/format.js',
   './js/install.js',
+  './js/schedule.js',
   './js/ui.js',
   './js/lib/idb.js',
   './js/views/home.js',

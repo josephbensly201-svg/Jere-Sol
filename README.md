@@ -1,4 +1,4 @@
-# Jere Sòl
+# SòlPèp
 
 Application web progressive (PWA) pour gérer un sòl (tontine) : membres, tours, paiements (même partiels), notes et totaux.
 Elle s'installe sur le téléphone et fonctionne **sans Internet**. Interface en créole haïtien.
@@ -49,7 +49,7 @@ jere-sol/
     ├── lib/idb.js        Enveloppe IndexedDB compatible avec l'API de `idb`
     └── views/
         ├── home.js       Liste des sòl + création
-        └── group.js      Onglets Tour / Tablo / Manm, paiements, export CSV
+        └── group.js      Onglets Manch / Tablo / Manm, paiements, export CSV
 ```
 
 ## Fonctionnalités
@@ -58,7 +58,7 @@ jere-sol/
 |---|---|
 | Renommer un membre | Onglet **Manm** → « Chanje non » |
 | « Supprimer » un membre = le rendre inactif (grisé, rien n'est effacé) | Onglet **Manm** → « Dezaktive » (confirmation) puis « Reaktive » |
-| Paiement partiel (montant réel) | Touchez un membre (onglet Tour) ou une case (onglet Tablo) : champ montant + boutons *Peye nèt / Mwatye / Vide* |
+| Paiement partiel (montant réel) | Touchez un membre (onglet Manch) ou une case (onglet Tablo) : champ montant + boutons *Peye nèt / Mwatye / Vide* |
 | Note par paiement | Même fenêtre, champ « Nòt » (un point apparaît dans le tableau) |
 | Total par membre (peye / dwe / rete) | Onglet **Manm** |
 | Format `1 500,00 HTG` | `js/format.js`, partout |

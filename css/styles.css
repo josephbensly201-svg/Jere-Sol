@@ -1,4 +1,4 @@
-/* Jere Sòl — design mobile.
+/* SòlPèp — design mobile.
  * Direksyon: kaye lajan an — ankre ble nwit (tinèb), pyès lò (po a), vèt/anb/wouj pou estati peman.
  * Polis sistèm sèlman: aplikasyon an mache san entènèt. */
 
@@ -280,3 +280,19 @@ main.wrap { padding-top: 16px; }
   .overlay { align-items: center; }
   .panel { border-radius: 22px; max-height: 86dvh; padding-bottom: 18px; }
 }
+
+/* ---------- Frekans peman (chwa) ---------- */
+.seg-field { border: 0; padding: 0; margin: 0; min-width: 0; }
+.seg-field legend { font-weight: 650; font-size: 14px; padding: 0; margin-bottom: 6px; }
+.seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.seg-opt { position: relative; }
+.seg-opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.seg-opt span {
+  display: grid; place-items: center; min-height: 48px; padding: 0 10px; text-align: center;
+  border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); font-weight: 650;
+}
+.seg-opt input:checked + span { background: var(--ink); color: #fff; border-color: var(--ink); }
+.seg-opt input:focus-visible + span { outline: 3px solid var(--gold); outline-offset: 2px; }
+.field input[type=date] { min-height: 48px; }
+.round-date { font-weight: 650; color: var(--ink); margin: 2px 0 4px; }
+.round-date.late { color: var(--owe); }

@@ -1,7 +1,8 @@
-/* Paj yon sòl: 3 onglè (Tour / Tablo / Manm), peman pasyèl, nòt, manm inaktif, ekspò CSV. */
+/* Paj yon sòl: 3 onglè (Manch / Tablo / Manm), peman pasyèl, nòt, manm inaktif, ekspò CSV. */
 import * as db from '../db.js';
 import { key, status } from '../calc.js';
 import { htg, num, toInput, parseAmount } from '../format.js';
+import { FREQUENCIES, dueDate, isPast, formatDate, formatDateShort, currentRound, scheduleFieldsHTML } from '../schedule.js';
 import { esc, initial, openSheet, confirmDialog, toast, downloadFile, safeFilename } from '../ui.js';
 
 const view = { id: null, tab: 'tour', round: null };
@@ -37,8 +38,9 @@ async function refresh() {
 function render() {
   const { group, members, calc } = data;
   if (view.round === null || view.round >= members.length) {
+    const scheduled = currentRound(group, members.length);
     const open = calc.perRound.find((r) => r.got < r.expected);
-    view.round = open ? open.round : 0;
+    view.round = scheduled !== null ? scheduled : open ? open.round : 0;
   }
 
   const scrollY = window.scrollY;
@@ -53,7 +55,7 @@ function render() {
           <a class="icon-btn on-dark" href="#/" aria-label="Retounen nan lis sòl yo">‹</a>
           <div class="titles">
             <h1>${esc(group.name)}</h1>
-            <p>${htg(group.amount)} pa tour · ${calc.activeCount} manm aktif</p>
+            <p>${htg(group.amount)} ${FREQUENCIES[group.frequency] ? FREQUENCIES[group.frequency].short : 'pa manch'} · ${calc.activeCount} manm aktif</p>
           </div>
           <button class="icon-btn on-dark" data-action="menu" aria-label="Plis opsyon">⋯</button>
         </div>
@@ -67,7 +69,7 @@ function render() {
     </div>
     <div class="tabs-bar"><div class="wrap">
       <div class="tabs" role="tablist">
-        ${tabButton('tour', 'Tour')}${tabButton('table', 'Tablo')}${tabButton('members', 'Manm')}
+        ${tabButton('tour', 'Manch')}${tabButton('table', 'Tablo')}${tabButton('members', 'Manm')}
       </div>
     </div></div>
     <main class="wrap" role="tabpanel">
@@ -85,25 +87,27 @@ const tabButton = (id, label) =>
 function emptyMembers() {
   return `<div class="empty">
     <h2>Poko gen manm</h2>
-    <p>Ajoute manm yo nan lòd yo ap resevwa po a. Chak manm kreye yon tour.</p>
+    <p>Ajoute manm yo nan lòd yo ap resevwa manch la. Chak manm kreye yon manch.</p>
     <button class="btn primary" data-action="goto-members">Ajoute manm</button>
   </div>`;
 }
 
-/* ----- Onglè Tour ----- */
+/* ----- Onglè Manch ----- */
 function renderRounds() {
   const { group, members, calc } = data;
   if (!members.length) return emptyMembers();
   const round = calc.perRound[view.round];
   const ben = round.beneficiary;
   const complete = round.expected > 0 && round.got >= round.expected;
+  const due = dueDate(group, view.round);
+  const late = isPast(due);
 
   const coins = calc.perRound.map((r) => {
     const done = r.expected > 0 && r.got >= r.expected;
     return `<button class="coin ${r.round === view.round ? 'on' : ''} ${done ? 'done' : ''} ${r.beneficiary.active ? '' : 'off'}"
-        data-action="pick-round" data-round="${r.round}" aria-label="Tour ${r.round + 1}, ${esc(r.beneficiary.name)}${done ? ', konplè' : ''}">
+        data-action="pick-round" data-round="${r.round}" aria-label="Manch ${r.round + 1}, ${esc(r.beneficiary.name)}${done ? ', konplè' : ''}">
         <span class="coin-face">${esc(initial(r.beneficiary.name))}</span>
-        <span class="coin-label">T${r.round + 1}</span>
+        <span class="coin-label">M${r.round + 1}</span>
       </button>`;
   }).join('');
 
@@ -111,13 +115,16 @@ function renderRounds() {
     const p = calc.map.get(key(m.id, view.round));
     const paid = p ? p.amount : 0;
     const st = status(paid, group.amount);
-    const label = st === 'full' ? 'Peye nèt' : st === 'part' ? 'Peye yon pati' : 'Poko peye';
+    const overdue = late && st !== 'full';
+    const label = st === 'full' ? 'Peye nèt'
+      : st === 'part' ? (overdue ? 'Peye yon pati · an reta' : 'Peye yon pati')
+      : (overdue ? 'An reta' : 'Poko peye');
     const isBen = m.id === ben.id;
     return `<li><button class="row ${st} ${m.active ? '' : 'inactive'}" data-action="pay" data-member="${esc(m.id)}" data-round="${view.round}"
         ${m.active ? '' : 'aria-disabled="true"'}>
         <span class="avatar">${esc(initial(m.name))}</span>
         <span class="who">
-          <b>${esc(m.name)}${m.active ? '' : ' <i class="tag">inaktif</i>'}${isBen ? ' <i class="tag gold">resevwa po a</i>' : ''}</b>
+          <b>${esc(m.name)}${m.active ? '' : ' <i class="tag">inaktif</i>'}${isBen ? ' <i class="tag gold">resevwa manch la</i>' : ''}</b>
           <small>${label}${p && p.note ? ' · 📝 ' + esc(p.note.length > 28 ? p.note.slice(0, 28) + '…' : p.note) : ''}</small>
         </span>
         <span class="amt"><b>${htg(paid)}</b><small>sou ${htg(group.amount)}</small></span>
@@ -125,10 +132,11 @@ function renderRounds() {
   }).join('');
 
   return `
-    <div class="coins" role="group" aria-label="Chwazi yon tour">${coins}</div>
+    <div class="coins" role="group" aria-label="Chwazi yon manch">${coins}</div>
     <section class="round-head">
-      <p class="round-kicker">Tour ${view.round + 1}${complete ? ' · konplè' : ''}</p>
-      <h2>${esc(ben.name)}${ben.active ? '' : ' (inaktif)'} resevwa po a</h2>
+      <p class="round-kicker">Manch ${view.round + 1}${complete ? ' · konplè' : ''}</p>
+      <h2>${esc(ben.name)}${ben.active ? '' : ' (inaktif)'} resevwa manch la</h2>
+      ${due ? `<p class="round-date ${late && !complete ? 'late' : ''}">📅 ${formatDate(due)}${late && !complete ? ' · dat la pase' : ''}</p>` : ''}
       <p class="round-sum"><b>${htg(round.got)}</b> kolekte sou ${htg(round.expected)}</p>
     </section>
     <ul class="rows">${rows}</ul>`;
@@ -140,7 +148,7 @@ function renderMatrix() {
   if (!members.length) return emptyMembers();
 
   const head = calc.perRound.map((r) =>
-    `<th scope="col" class="${r.round === view.round ? 'cur' : ''}"><span class="th-t">T${r.round + 1}</span><span class="th-b">${esc(initial(r.beneficiary.name))}</span></th>`
+    `<th scope="col" class="${r.round === view.round ? 'cur' : ''}"><span class="th-t">M${r.round + 1}</span><span class="th-b">${esc(initial(r.beneficiary.name))}</span></th>`
   ).join('');
 
   const body = calc.perMember.map(({ member: m, paid }) => {
@@ -150,7 +158,7 @@ function renderMatrix() {
       const st = status(amt, group.amount);
       const isBen = members[r].id === m.id;
       return `<td><button class="cell ${st} ${isBen ? 'ben' : ''} ${p && p.note ? 'has-note' : ''}" data-action="pay" data-member="${esc(m.id)}" data-round="${r}"
-          aria-label="${esc(m.name)}, tour ${r + 1}: ${htg(amt)}">${amt > 0 ? num(amt) : '—'}</button></td>`;
+          aria-label="${esc(m.name)}, manch ${r + 1}: ${htg(amt)}">${amt > 0 ? num(amt) : '—'}</button></td>`;
     }).join('');
     return `<tr class="${m.active ? '' : 'inactive'}"><th scope="row"><span class="name">${esc(m.name)}</span></th>${cells}<td class="sum">${num(paid)}</td></tr>`;
   }).join('');
@@ -158,7 +166,7 @@ function renderMatrix() {
   const foot = calc.perRound.map((r) => `<td>${num(r.got)}</td>`).join('');
 
   return `
-    <p class="hint">Touche yon kaz pou antre montan an ak yon nòt. Kare jòn nan make moun ki resevwa po a.</p>
+    <p class="hint">Touche yon kaz pou antre montan an ak yon nòt. Kare jòn nan make moun ki resevwa manch la.</p>
     <div class="matrix-wrap"><table class="matrix">
       <thead><tr><th scope="col" class="corner">Manm</th>${head}<th scope="col" class="sum">Total</th></tr></thead>
       <tbody>${body}</tbody>
@@ -174,7 +182,7 @@ function renderMembers() {
     return `<li class="member ${m.active ? '' : 'inactive'}">
       <div class="member-top">
         <span class="avatar">${esc(initial(m.name))}</span>
-        <span class="who"><b>${esc(m.name)}</b><small>Tour ${m.order >= 0 ? members.indexOf(m) + 1 : ''}${m.active ? '' : ' · inaktif'}</small></span>
+        <span class="who"><b>${esc(m.name)}</b><small>Manch ${m.order >= 0 ? members.indexOf(m) + 1 : ''}${m.active ? '' : ' · inaktif'}</small></span>
         <span class="amt">
           ${m.active
             ? `<b>${rest > 0 ? 'Rete ' + htg(rest) : 'Ajou ✓'}</b>`
@@ -197,7 +205,7 @@ function renderMembers() {
       <input name="name" maxlength="40" autocomplete="off" placeholder="Non nouvo manm nan" aria-label="Non nouvo manm nan">
       <button class="btn gold" type="submit">Ajoute</button>
     </form>
-    <p class="hint">Lòd la se lòd resevwa po a. Chak manm ou ajoute kreye yon nouvo tour.</p>
+    <p class="hint">Lòd la se lòd resevwa manch la. Chak manm ou ajoute kreye yon nouvo manch.</p>
     ${members.length ? `<ul class="members">${list}</ul>` : ''}`;
 }
 
@@ -256,7 +264,7 @@ function openPayment(memberId, round) {
   openSheet({
     title: m.name,
     html: `
-      <p class="sheet-sub">Tour ${round + 1} · ${esc(ben.name)} resevwa po a</p>
+      <p class="sheet-sub">Manch ${round + 1} · ${esc(ben.name)} resevwa manch la</p>
       <form class="stack" novalidate>
         <label class="field"><span>Montan peye (HTG)</span>
           <input name="amount" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${toInput(existing ? existing.amount : 0)}" data-autofocus></label>
@@ -319,7 +327,7 @@ function openPayment(memberId, round) {
         if (amount === 0 && existing && existing.amount > 0 && !note.trim()) {
           const ok = await confirmDialog({
             title: 'Efase peman an?',
-            message: `Ou vle retire ${htg(existing.amount)} ke ${m.name} te peye pou tour ${round + 1} lan?`,
+            message: `Ou vle retire ${htg(existing.amount)} ke ${m.name} te peye pou manch ${round + 1} lan?`,
             confirmLabel: 'Efase', danger: true
           });
           if (!ok) return;
@@ -331,7 +339,7 @@ function openPayment(memberId, round) {
       if (erase) erase.addEventListener('click', async () => {
         const ok = await confirmDialog({
           title: 'Efase peman an?',
-          message: `Sa ap efase montan an ak nòt la pou ${m.name}, tour ${round + 1}.`,
+          message: `Sa ap efase montan an ak nòt la pou ${m.name}, manch ${round + 1}.`,
           confirmLabel: 'Efase', danger: true
         });
         if (ok) await save(0, '');
@@ -430,9 +438,10 @@ function openEditGroup() {
       <form class="stack" novalidate>
         <label class="field"><span>Non sòl la</span>
           <input name="name" maxlength="60" autocomplete="off" value="${esc(g.name)}" data-autofocus></label>
-        <label class="field"><span>Montan pa tour (HTG)</span>
+        <label class="field"><span>Montan pa manch (HTG)</span>
           <input name="amount" inputmode="decimal" autocomplete="off" value="${toInput(g.amount)}"></label>
-        <p class="hint">Si ou chanje montan an, tout total yo ap rekalkile ak nouvo montan an.</p>
+        ${scheduleFieldsHTML(g)}
+        <p class="hint">Si ou chanje montan an oswa dat yo, tout total ak dat manch yo ap rekalkile.</p>
         <p class="error" data-error hidden></p>
         <div class="actions">
           <button type="button" class="btn ghost" data-close>Anile</button>
@@ -448,7 +457,9 @@ function openEditGroup() {
         const amount = parseAmount(form.elements.amount.value);
         if (!name) { err.textContent = 'Mete yon non pou sòl la.'; err.hidden = false; return; }
         if (amount === null || amount <= 0) { err.textContent = 'Mete yon montan ki pi gran pase 0.'; err.hidden = false; return; }
-        await db.updateGroup(g.id, { name, amount });
+        const startDate = form.elements.startDate.value;
+        if (!startDate) { err.textContent = 'Chwazi dat premye manch la.'; err.hidden = false; return; }
+        await db.updateGroup(g.id, { name, amount, frequency: form.elements.frequency.value, startDate });
         close();
         await refresh();
         toast('Sòl la modifye.');
@@ -468,9 +479,10 @@ function exportCsv() {
 
   const rows = [];
   rows.push(['Sòl', group.name]);
-  rows.push(['Montan pa tour (HTG)', dec(group.amount)]);
+  rows.push(['Montan pa manch (HTG)', dec(group.amount)]);
+  if (FREQUENCIES[group.frequency]) rows.push(['Frekans', FREQUENCIES[group.frequency].label]);
   rows.push([]);
-  rows.push(['Manm', 'Estati', ...members.map((_, r) => `Tour ${r + 1}`), 'Total peye (HTG)', 'Total dwe (HTG)', 'Rete (HTG)']);
+  rows.push(['Manm', 'Estati', ...members.map((_, r) => { const d = dueDate(group, r); return d ? `Manch ${r + 1} (${formatDateShort(d)})` : `Manch ${r + 1}`; }), 'Total peye (HTG)', 'Total dwe (HTG)', 'Rete (HTG)']);
   calc.perMember.forEach(({ member: m, paid, owed, rest }) => {
     const row = [m.name, m.active ? 'Aktif' : 'Inaktif'];
     members.forEach((_, r) => { const p = calc.map.get(key(m.id, r)); row.push(dec(p ? p.amount : 0)); });
@@ -482,7 +494,7 @@ function exportCsv() {
   const notes = data.payments.filter((p) => p.note);
   if (notes.length) {
     rows.push([]);
-    rows.push(['Nòt', 'Manm', 'Tour', 'Montan (HTG)']);
+    rows.push(['Nòt', 'Manm', 'Manch', 'Montan (HTG)']);
     notes.forEach((p) => {
       const m = members.find((x) => x.id === p.memberId);
       rows.push([p.note, m ? m.name : '?', p.round + 1, dec(p.amount)]);

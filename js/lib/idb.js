@@ -1,6 +1,6 @@
 /* Mini-enveloppe IndexedDB, compatible avec l'API de la bibliothèque `idb` (Jake Archibald).
  *
- * Elle implémente uniquement le sous-ensemble utilisé par Jere Sòl :
+ * Elle implémente uniquement le sous-ensemble utilisé par SòlPèp :
  *   openDB(name, version, { upgrade })
  *   db.get / getAll / getAllFromIndex / put / delete / clear
  *   db.transaction(stores, mode) -> tx.objectStore(name).put/delete/get/getAll, tx.done
